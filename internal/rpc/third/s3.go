@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
@@ -285,6 +286,39 @@ func (t *thirdServer) CompleteFormData(ctx context.Context, req *third.CompleteF
 }
 
 func (t *thirdServer) apiAddress(prefix, name string) string {
+	// 对于R2和其他S3兼容服务，尝试构建公共访问URL
+	ctx := context.Background()
+
+	// 如果是R2配置，尝试使用自定义的BucketURL
+	if t.config.RpcConfig.Object.Enable == "r2" || t.config.RpcConfig.Object.Enable == "aws" {
+		// 对于R2，我们需要构建公共访问URL
+		// 首先尝试从S3获取对象信息
+		obj, err := t.s3dataBase.StatObject(ctx, name)
+		if err == nil {
+			// 如果有BucketURL配置（从环境变量），使用它来构建公共URL
+			// 注意：R2的公共URL格式通常是: https://your-bucket-url/object-key
+			// 这里使用prefix作为回退，因为前端会设置正确的prefix
+			if prefix != "" && strings.Contains(prefix, "memefans") {
+				// 使用配置的公共域名
+				return prefix + obj.Key
+			}
+		}
+
+		// 如果没有BucketURL，生成预签名URL
+		_, rawURL, err := t.s3dataBase.AccessURL(ctx, name, t.defaultExpire, nil)
+		if err == nil {
+			return rawURL
+		}
+	} else {
+		// 对于其他存储服务（MINIO等），使用原来的逻辑
+		_, rawURL, err := t.s3dataBase.AccessURL(ctx, name, t.defaultExpire, nil)
+		if err == nil {
+			return rawURL
+		}
+	}
+
+	// 如果所有方法都失败，回退到API URL
+	log.ZWarn(ctx, "Failed to get direct access URL, fallback to API URL", nil, "name", name, "enable", t.config.RpcConfig.Object.Enable)
 	return prefix + name
 }
 

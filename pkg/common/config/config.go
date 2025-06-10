@@ -15,6 +15,7 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -55,16 +56,18 @@ type Log struct {
 }
 
 type Minio struct {
-	Bucket          string `mapstructure:"bucket"`
-	AccessKeyID     string `mapstructure:"accessKeyID"`
-	SecretAccessKey string `mapstructure:"secretAccessKey"`
-	SessionToken    string `mapstructure:"sessionToken"`
-	InternalAddress string `mapstructure:"internalAddress"`
-	ExternalAddress string `mapstructure:"externalAddress"`
-	PublicRead      bool   `mapstructure:"publicRead"`
+	Bucket             string `yaml:"bucket"`
+	AccessKeyID        string `yaml:"accessKeyID"`
+	SecretAccessKey    string `yaml:"secretAccessKey"`
+	SessionToken       string `yaml:"sessionToken"`
+	InternalAddress    string `yaml:"internalAddress"`
+	ExternalAddress    string `yaml:"externalAddress"`
+	PublicRead         bool   `yaml:"publicRead"`
+	SkipETagValidation bool   `yaml:"skipETagValidation"`
 }
 
 type Mongo struct {
+	URI         string   `yaml:"uri"`
 	URI         string   `mapstructure:"uri"`
 	Address     []string `mapstructure:"address"`
 	Database    string   `mapstructure:"database"`
@@ -341,6 +344,8 @@ type Aws struct {
 	AccessKeyID     string `mapstructure:"accessKeyID"`
 	SecretAccessKey string `mapstructure:"secretAccessKey"`
 	SessionToken    string `mapstructure:"sessionToken"`
+	Endpoint        string `yaml:"endpoint"`  // 支持自定义endpoint，用于Cloudflare R2等S3兼容服务
+	BucketURL       string `yaml:"bucketURL"` // 自定义bucket URL，用于特殊的访问模式
 }
 
 type User struct {
@@ -591,13 +596,51 @@ func (o *Kodo) Build() *kodo.Config {
 }
 
 func (o *Aws) Build() *aws.Config {
-	return &aws.Config{
+	// 添加调试日志，确保配置正确传递
+	fmt.Printf("=== AWS Configuration Debug ===\n")
+	fmt.Printf("Region: %s\n", o.Region)
+	fmt.Printf("Bucket: %s\n", o.Bucket)
+	fmt.Printf("AccessKeyID: %s\n", o.AccessKeyID)
+	fmt.Printf("SecretAccessKey: %s\n", maskString(o.SecretAccessKey))
+	fmt.Printf("SessionToken: %s\n", maskString(o.SessionToken))
+	fmt.Printf("Endpoint: %s\n", o.Endpoint)
+	fmt.Printf("BucketURL: %s\n", o.BucketURL)
+	fmt.Printf("PublicRead: %t\n", o.PublicRead)
+	fmt.Printf("===============================\n")
+
+	config := &aws.Config{
 		Region:          o.Region,
 		Bucket:          o.Bucket,
 		AccessKeyID:     o.AccessKeyID,
 		SecretAccessKey: o.SecretAccessKey,
 		SessionToken:    o.SessionToken,
+		Endpoint:        o.Endpoint,
+		BucketURL:       o.BucketURL,
+		PublicRead:      o.PublicRead,
 	}
+
+	// 验证关键配置
+	if o.Endpoint != "" {
+		fmt.Printf("✅ Custom endpoint configured: %s\n", o.Endpoint)
+	} else {
+		fmt.Printf("⚠️  No custom endpoint configured - will use default AWS\n")
+	}
+
+	if o.BucketURL != "" {
+		fmt.Printf("✅ Custom bucketURL configured: %s\n", o.BucketURL)
+	} else {
+		fmt.Printf("⚠️  No custom bucketURL configured\n")
+	}
+
+	return config
+}
+
+// maskString 屏蔽敏感信息，只显示前几位和后几位
+func maskString(s string) string {
+	if len(s) <= 8 {
+		return "***"
+	}
+	return s[:4] + "***" + s[len(s)-4:]
 }
 
 func (l *CacheConfig) Failed() time.Duration {
