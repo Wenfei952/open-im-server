@@ -12,7 +12,5 @@ internalAddress: localhost:10005
 externalAddress: http://external_ip:10005
 # Flag to enable or disable public read access to the bucket
 publicRead: false
-# Flag to skip ETag validation (default: false - do not skip validation)
-skipETagValidation: false
 
 

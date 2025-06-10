@@ -48,6 +48,4 @@ object:
     accessKeyID:
     secretAccessKey:
     sessionToken:
-    endpoint:  # 自定义endpoint，用于Cloudflare R2等S3兼容服务
-    bucketURL: # 自定义bucket URL，用于特殊的访问模式
     publicRead: false

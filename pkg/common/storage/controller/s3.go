@@ -16,9 +16,7 @@ package controller
 
 import (
 	"context"
-	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	redisCache "github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
@@ -47,23 +45,9 @@ type S3Database interface {
 	GetKeyCount(ctx context.Context, engine string, key string) (int64, error)
 }
 
-func NewS3Database(rdb redis.UniversalClient, s3 s3.Interface, obj database.ObjectInfo, skipETagValidation ...bool) S3Database {
-	skip := false // 默认值：不跳过ETag验证
-
-	// 首先检查传入的参数
-	if len(skipETagValidation) > 0 {
-		skip = skipETagValidation[0]
-	} else {
-		// 如果没有传入参数，检查环境变量 OPENIM_S3_SKIP_ETAG_VALIDATION
-		if envValue := os.Getenv("OPENIM_S3_SKIP_ETAG_VALIDATION"); envValue != "" {
-			if parsed, err := strconv.ParseBool(envValue); err == nil {
-				skip = parsed
-			}
-		}
-	}
-
+func NewS3Database(rdb redis.UniversalClient, s3 s3.Interface, obj database.ObjectInfo) S3Database {
 	return &s3Database{
-		s3:      cont.New(redisCache.NewS3Cache(rdb, s3), s3, skip),
+		s3:      cont.New(redisCache.NewS3Cache(rdb, s3), s3),
 		cache:   redisCache.NewObjectCacheRedis(rdb, obj),
 		s3cache: redisCache.NewS3Cache(rdb, s3),
 		db:      obj,
