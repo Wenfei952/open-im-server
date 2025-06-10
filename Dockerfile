@@ -11,10 +11,7 @@ ENV SERVER_DIR=/openim-server
 WORKDIR $SERVER_DIR
 
 # Set the Go proxy to improve dependency resolution speed and handle private modules
-ENV GOPROXY=https://goproxy.cn,direct
-ENV GONOSUMDB=github.com/Wenfei952/openim-tools
-ENV GOPRIVATE=github.com/Wenfei952/*
-ENV GOSUMDB=off
+# ENV GOPROXY=https://goproxy.cn,direct
 
 # Copy all files from the current directory into the container
 COPY . .
