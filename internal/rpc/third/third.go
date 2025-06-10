@@ -17,7 +17,6 @@ package third
 import (
 	"context"
 	"fmt"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
 	"time"
 
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
@@ -25,12 +24,15 @@ import (
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
 	"github.com/openimsdk/open-im-server/v3/pkg/localcache"
+	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
 	"github.com/openimsdk/protocol/third"
 	"github.com/openimsdk/tools/db/mongoutil"
 	"github.com/openimsdk/tools/db/redisutil"
 	"github.com/openimsdk/tools/discovery"
 	"github.com/openimsdk/tools/s3"
+	"github.com/openimsdk/tools/s3/aws"
 	"github.com/openimsdk/tools/s3/cos"
+	"github.com/openimsdk/tools/s3/disable"
 	"github.com/openimsdk/tools/s3/kodo"
 	"github.com/openimsdk/tools/s3/minio"
 	"github.com/openimsdk/tools/s3/oss"
@@ -84,12 +86,6 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 
 	switch enable {
 	case "minio":
-		var minioCache minio.Cache
-		if rdb == nil {
-			mc, err := mgo.NewCacheMgo(mgocli.GetDB())
-			if err != nil {
-				return err
-			}
 		o, err = minio.NewMinio(ctx, redis.NewMinioCache(rdb), *config.MinioConfig.Build())
 	case "cos":
 		o, err = cos.NewCos(*config.RpcConfig.Object.Cos.Build())

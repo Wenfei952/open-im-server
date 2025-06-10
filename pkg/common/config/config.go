@@ -67,7 +67,6 @@ type Minio struct {
 }
 
 type Mongo struct {
-	URI         string   `yaml:"uri"`
 	URI         string   `mapstructure:"uri"`
 	Address     []string `mapstructure:"address"`
 	Database    string   `mapstructure:"database"`
@@ -338,14 +337,14 @@ type Kodo struct {
 }
 
 type Aws struct {
-	Endpoint        string `mapstructure:"endpoint"`
+	Endpoint        string `mapstructure:"endpoint"` // 支持自定义endpoint，用于Cloudflare R2等S3兼容服务
 	Region          string `mapstructure:"region"`
 	Bucket          string `mapstructure:"bucket"`
 	AccessKeyID     string `mapstructure:"accessKeyID"`
 	SecretAccessKey string `mapstructure:"secretAccessKey"`
 	SessionToken    string `mapstructure:"sessionToken"`
-	Endpoint        string `yaml:"endpoint"`  // 支持自定义endpoint，用于Cloudflare R2等S3兼容服务
-	BucketURL       string `yaml:"bucketURL"` // 自定义bucket URL，用于特殊的访问模式
+	BucketURL       string `mapstructure:"bucketURL"` // 自定义bucket URL，用于特殊的访问模式
+	PublicRead      bool   `mapstructure:"publicRead"`
 }
 
 type User struct {
