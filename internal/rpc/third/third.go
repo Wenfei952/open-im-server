@@ -77,10 +77,12 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 	}
 
 	// Select the oss method according to the profile policy
+	var o s3.Interface
 	enable := config.RpcConfig.Object.Enable
-	var (
-		o s3.Interface
-	)
+	fmt.Printf("=== Object Storage Selection Debug ===\n")
+	fmt.Printf("Object.Enable: %s\n", enable)
+	fmt.Printf("====================================\n")
+
 	switch enable {
 	case "minio":
 		o, err = minio.NewMinio(ctx, redis.NewMinioCache(rdb), *config.MinioConfig.Build())
@@ -90,6 +92,27 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 		o, err = oss.NewOSS(*config.RpcConfig.Object.Oss.Build())
 	case "kodo":
 		o, err = kodo.NewKodo(*config.RpcConfig.Object.Kodo.Build())
+	case "aws":
+		fmt.Printf("🔧 Initializing AWS S3 client...\n")
+		awsConfig := config.RpcConfig.Object.Aws.Build()
+		o, err = aws.NewAws(*awsConfig)
+		if err != nil {
+			fmt.Printf("❌ AWS S3 initialization failed: %v\n", err)
+		} else {
+			fmt.Printf("✅ AWS S3 client initialized successfully\n")
+		}
+	case "r2":
+		fmt.Printf("🔧 Initializing Cloudflare R2 client (using AWS S3 compatibility)...\n")
+		// Cloudflare R2 support using AWS S3 compatibility
+		awsConfig := config.RpcConfig.Object.Aws.Build()
+		o, err = aws.NewAws(*awsConfig)
+		if err != nil {
+			fmt.Printf("❌ Cloudflare R2 initialization failed: %v\n", err)
+		} else {
+			fmt.Printf("✅ Cloudflare R2 client initialized successfully\n")
+		}
+	case "":
+		o = disable.NewDisable()
 	default:
 		err = fmt.Errorf("invalid object enable: %s", enable)
 	}
@@ -103,7 +126,7 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 	localcache.InitLocalCache(&config.LocalCacheConfig)
 	third.RegisterThirdServer(server, &thirdServer{
 		thirdDatabase: controller.NewThirdDatabase(redis.NewThirdCache(rdb), logdb),
-		s3dataBase:    controller.NewS3Database(rdb, o, s3db),
+		s3dataBase:    controller.NewS3Database(rdb, o, s3db, config.MinioConfig.SkipETagValidation),
 		defaultExpire: time.Hour * 24 * 7,
 		config:        config,
 		s3:            o,

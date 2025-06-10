@@ -1,14 +1,20 @@
 # Use Go 1.22 Alpine as the base image for building the application
 FROM golang:1.22-alpine AS builder
 
+# Install git and other necessary tools for building
+RUN apk add --no-cache git
+
 # Define the base directory for the application as an environment variable
 ENV SERVER_DIR=/openim-server
 
 # Set the working directory inside the container based on the environment variable
 WORKDIR $SERVER_DIR
 
-# Set the Go proxy to improve dependency resolution speed
-# ENV GOPROXY=https://goproxy.io,direct
+# Set the Go proxy to improve dependency resolution speed and handle private modules
+ENV GOPROXY=https://goproxy.cn,direct
+ENV GONOSUMDB=github.com/Wenfei952/openim-tools
+ENV GOPRIVATE=github.com/Wenfei952/*
+ENV GOSUMDB=off
 
 # Copy all files from the current directory into the container
 COPY . .
